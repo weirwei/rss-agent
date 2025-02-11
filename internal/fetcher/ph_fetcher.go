@@ -11,16 +11,16 @@ import (
 	"github.com/weirwei/rss-agent/internal/model"
 )
 
-// HTMLFetcher HTML页面获取器
-type HTMLFetcher struct{}
+// PHFetcher ProductHunt 页面获取器
+type PHFetcher struct{}
 
-// NewHTMLFetcher 创建HTML获取器
-func NewHTMLFetcher() *HTMLFetcher {
-	return &HTMLFetcher{}
+// NewPHFetcher 创建ProductHunt获取器
+func NewPHFetcher() *PHFetcher {
+	return &PHFetcher{}
 }
 
-// Fetch 实现 FeedFetcher 接口 - HTML方式
-func (h *HTMLFetcher) Fetch(url string) (*model.FeedData, error) {
+// Fetch 实现 FeedFetcher 接口 - ProductHunt方式
+func (h *PHFetcher) Fetch(url string) (*model.FeedData, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("获取页面失败: %v", err)
@@ -49,13 +49,11 @@ func (h *HTMLFetcher) Fetch(url string) (*model.FeedData, error) {
 	sloganPattern := regexp.MustCompile(`<strong>标语</strong>：([^<]+)<br`)
 	descPattern := regexp.MustCompile(`<strong>介绍</strong>：([^<]+)<br`)
 	linkPattern := regexp.MustCompile(`<h2><a href="([^"]+)"`)
-	websitePattern := regexp.MustCompile(`<strong>产品网站</strong>: <a href="([^"]+)"`)
 
 	titles := titlePattern.FindAllStringSubmatch(content, -1)
 	slogans := sloganPattern.FindAllStringSubmatch(content, -1)
 	descs := descPattern.FindAllStringSubmatch(content, -1)
 	links := linkPattern.FindAllStringSubmatch(content, -1)
-	websites := websitePattern.FindAllStringSubmatch(content, -1)
 
 	// 确保找到的各项数量匹配
 	minLen := len(titles)
@@ -68,26 +66,21 @@ func (h *HTMLFetcher) Fetch(url string) (*model.FeedData, error) {
 	if len(links) < minLen {
 		minLen = len(links)
 	}
-	if len(websites) < minLen {
-		minLen = len(websites)
-	}
 
 	for i := 0; i < minLen; i++ {
 		title := strings.TrimSpace(titles[i][1])
 		slogan := strings.TrimSpace(slogans[i][1])
 		desc := strings.TrimSpace(descs[i][1])
 		link := strings.TrimSpace(links[i][1])
-		website := strings.TrimSpace(websites[i][1])
 
 		title = regexp.MustCompile(`^\d+\.\s*`).ReplaceAllString(title, "")
-		fullDesc := fmt.Sprintf("%s\n\n【产品网站】%s", desc, website)
 
 		item := model.FeedItem{
 			Title:       title,
 			Link:        link,
 			Published:   time.Now(),
 			Summary:     slogan,
-			Description: fullDesc,
+			Description: desc,
 		}
 		result.Items = append(result.Items, item)
 	}

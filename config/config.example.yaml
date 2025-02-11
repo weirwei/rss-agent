@@ -1,0 +1,14 @@
+app:
+  name: rss-agent
+
+schedule: 180
+
+feishu:
+  product_hunt:
+    webhook_url: https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-url
+    length: 5
+
+fetcher:
+  product_hunt:
+    enabled: true
+    length: 5

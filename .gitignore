@@ -1,6 +1,9 @@
 # 输出目录
 rss_output/
 
+# 配置文件
+config/config.yaml
+
 # Go 相关
 *.exe
 *.exe~
