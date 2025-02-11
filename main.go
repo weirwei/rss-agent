@@ -26,11 +26,12 @@ type Feed struct {
 
 // Entry 表示RSS条目的结构
 type Entry struct {
-	Title     string `json:"title"`
-	Link      string `json:"link"`
-	Published string `json:"published"`
-	Summary   string `json:"summary"`
-	Author    string `json:"author"`
+	Title       string `json:"title"`
+	Link        string `json:"link"`
+	Published   string `json:"published"`
+	Summary     string `json:"summary"`     // 用于存放标语
+	Description string `json:"description"` // 用于存放介绍
+	Author      string `json:"author"`
 }
 
 // DynamicFeed 表示动态RSS源的结构
@@ -39,13 +40,50 @@ type DynamicFeed struct {
 	DateFormat  string
 }
 
+// FeedFetcher 定义了获取数据的统一接口
+type FeedFetcher interface {
+	Fetch(url string) (*FeedData, error)
+}
+
+// FeedData 统一的数据结构
+type FeedData struct {
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	LastUpdated time.Time  `json:"last_updated"`
+	Items       []FeedItem `json:"items"`
+}
+
+// FeedItem 统一的条目结构
+type FeedItem struct {
+	Title       string    `json:"title"`
+	Link        string    `json:"link"`
+	Published   time.Time `json:"published"`
+	Summary     string    `json:"summary"`     // 标语/简短描述
+	Description string    `json:"description"` // 详细描述
+	Author      string    `json:"author,omitempty"`
+}
+
+// RSSFetcher RSS源获取器
+type RSSFetcher struct {
+	parser *gofeed.Parser
+}
+
+// HTMLFetcher HTML页面获取器
+type HTMLFetcher struct{}
+
 // RSSHelper RSS助手结构体
 type RSSHelper struct {
-	feeds        map[string]string
-	dynamicFeeds map[string]DynamicFeed
-	outputDir    string
-	parser       *gofeed.Parser
-	stopChan     chan bool
+	feeds     map[string]FeedConfig
+	outputDir string
+	stopChan  chan bool
+}
+
+type FeedConfig struct {
+	URL      string
+	Fetcher  FeedFetcher
+	Dynamic  bool
+	Template string
+	Format   string
 }
 
 // NewRSSHelper 创建新的RSS助手实例
@@ -60,74 +98,62 @@ func NewRSSHelper(outputDir string) *RSSHelper {
 	}
 
 	return &RSSHelper{
-		feeds:        make(map[string]string),
-		dynamicFeeds: make(map[string]DynamicFeed),
-		outputDir:    outputDir,
-		parser:       gofeed.NewParser(),
-		stopChan:     make(chan bool),
+		feeds:     make(map[string]FeedConfig),
+		outputDir: outputDir,
+		stopChan:  make(chan bool),
 	}
 }
 
-// AddFeed 添加RSS源
-func (r *RSSHelper) AddFeed(name, url string) {
-	r.feeds[name] = url
-}
-
-// AddDynamicFeed 添加动态RSS源
-func (r *RSSHelper) AddDynamicFeed(name, urlTemplate, dateFormat string) {
-	r.dynamicFeeds[name] = DynamicFeed{
-		URLTemplate: urlTemplate,
-		DateFormat:  dateFormat,
+// NewRSSFetcher 创建RSS获取器
+func NewRSSFetcher() *RSSFetcher {
+	return &RSSFetcher{
+		parser: gofeed.NewParser(),
 	}
 }
 
-// FetchFeed 抓取单个RSS源
-func (r *RSSHelper) FetchFeed(name string) (*Feed, error) {
-	url, exists := r.feeds[name]
-	if !exists {
-		return nil, fmt.Errorf("RSS源 %s 不存在", name)
-	}
+// NewHTMLFetcher 创建HTML获取器
+func NewHTMLFetcher() *HTMLFetcher {
+	return &HTMLFetcher{}
+}
 
+// Fetch 实现 FeedFetcher 接口 - RSS方式
+func (r *RSSFetcher) Fetch(url string) (*FeedData, error) {
 	feed, err := r.parser.ParseURL(url)
 	if err != nil {
 		return nil, fmt.Errorf("解析RSS源失败: %v", err)
 	}
 
-	result := &Feed{
+	result := &FeedData{
 		Title:       feed.Title,
 		Description: feed.Description,
 		LastUpdated: time.Now(),
-		Entries:     make([]Entry, 0),
+		Items:       make([]FeedItem, 0),
 	}
 
 	for _, item := range feed.Items {
-		entry := Entry{
-			Title:     item.Title,
-			Link:      item.Link,
-			Published: item.Published,
-			Summary:   item.Description,
+		pubTime := time.Now()
+		if item.PublishedParsed != nil {
+			pubTime = *item.PublishedParsed
+		}
+
+		feedItem := FeedItem{
+			Title:       item.Title,
+			Link:        item.Link,
+			Published:   pubTime,
+			Summary:     item.Description,
+			Description: item.Content,
 		}
 		if item.Author != nil {
-			entry.Author = item.Author.Name
+			feedItem.Author = item.Author.Name
 		}
-		result.Entries = append(result.Entries, entry)
-	}
-
-	outputFile := filepath.Join(r.outputDir, name+".json")
-	data, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("JSON序列化失败: %v", err)
-	}
-
-	if err := os.WriteFile(outputFile, data, 0644); err != nil {
-		return nil, fmt.Errorf("写入文件失败: %v", err)
+		result.Items = append(result.Items, feedItem)
 	}
 
 	return result, nil
 }
 
-// FetchDynamicPage 抓取和解析 HTML 页面
-func (r *RSSHelper) FetchDynamicPage(url string) (*Feed, error) {
+// Fetch 实现 FeedFetcher 接口 - HTML方式
+func (h *HTMLFetcher) Fetch(url string) (*FeedData, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("获取页面失败: %v", err)
@@ -144,88 +170,91 @@ func (r *RSSHelper) FetchDynamicPage(url string) (*Feed, error) {
 	}
 
 	content := string(body)
-
-	// 创建基本的 Feed 结构
-	result := &Feed{
+	result := &FeedData{
 		Title:       "ProductHunt Daily",
 		Description: "Daily ProductHunt Updates",
 		LastUpdated: time.Now(),
-		Entries:     make([]Entry, 0),
+		Items:       make([]FeedItem, 0),
 	}
 
-	// 调整正则表达式以匹配实际的HTML结构
+	// 解析HTML内容
 	titlePattern := regexp.MustCompile(`<h2><a[^>]*>(\d+\.\s*[^<]+)</a></h2>`)
+	sloganPattern := regexp.MustCompile(`<strong>标语</strong>：([^<]+)<br`)
 	descPattern := regexp.MustCompile(`<strong>介绍</strong>：([^<]+)<br`)
 	linkPattern := regexp.MustCompile(`<h2><a href="([^"]+)"`)
+	websitePattern := regexp.MustCompile(`<strong>产品网站</strong>: <a href="([^"]+)"`)
 
 	titles := titlePattern.FindAllStringSubmatch(content, -1)
+	slogans := sloganPattern.FindAllStringSubmatch(content, -1)
 	descs := descPattern.FindAllStringSubmatch(content, -1)
 	links := linkPattern.FindAllStringSubmatch(content, -1)
+	websites := websitePattern.FindAllStringSubmatch(content, -1)
 
-	fmt.Printf("找到 %d 个标题, %d 个描述, %d 个链接\n", len(titles), len(descs), len(links))
+	fmt.Printf("找到 %d 个标题, %d 个标语, %d 个描述, %d 个链接, %d 个网站\n",
+		len(titles), len(slogans), len(descs), len(links), len(websites))
 
-	// 确保找到的标题和描述数量匹配
+	// 确保找到的各项数量匹配
 	minLen := len(titles)
+	if len(slogans) < minLen {
+		minLen = len(slogans)
+	}
 	if len(descs) < minLen {
 		minLen = len(descs)
 	}
 	if len(links) < minLen {
 		minLen = len(links)
 	}
+	if len(websites) < minLen {
+		minLen = len(websites)
+	}
 
 	for i := 0; i < minLen; i++ {
 		title := strings.TrimSpace(titles[i][1])
+		slogan := strings.TrimSpace(slogans[i][1])
 		desc := strings.TrimSpace(descs[i][1])
 		link := strings.TrimSpace(links[i][1])
+		website := strings.TrimSpace(websites[i][1])
 
-		// 清理标题中的序号
 		title = regexp.MustCompile(`^\d+\.\s*`).ReplaceAllString(title, "")
+		fullDesc := fmt.Sprintf("%s\n\n【产品网站】%s", desc, website)
 
-		entry := Entry{
-			Title:   title,
-			Summary: desc,
-			Link:    link,
+		item := FeedItem{
+			Title:       title,
+			Link:        link,
+			Published:   time.Now(),
+			Summary:     slogan,
+			Description: fullDesc,
 		}
-		result.Entries = append(result.Entries, entry)
-	}
-
-	// 如果没有找到任何条目
-	if len(result.Entries) == 0 {
-		return nil, fmt.Errorf("页面中未找到任何产品信息")
+		result.Items = append(result.Items, item)
 	}
 
 	return result, nil
 }
 
+func (r *RSSHelper) AddFeed(name string, config FeedConfig) {
+	r.feeds[name] = config
+}
+
 // FetchAllFeeds 抓取所有RSS源
-func (r *RSSHelper) FetchAllFeeds() map[string]*Feed {
-	results := make(map[string]*Feed)
+func (r *RSSHelper) FetchAllFeeds() map[string]*FeedData {
+	results := make(map[string]*FeedData)
 
-	// 处理静态源
-	for name := range r.feeds {
-		if feed, err := r.FetchFeed(name); err == nil {
-			results[name] = feed
-		} else {
-			fmt.Printf("抓取静态源 %s 失败: %v\n", name, err)
+	for name, config := range r.feeds {
+		url := config.URL
+		if config.Dynamic {
+			currentDate := time.Now().Format(config.Format)
+			url = strings.Replace(config.Template, "{{date}}", currentDate, -1)
 		}
-	}
 
-	// 处理动态源
-	for name, df := range r.dynamicFeeds {
-		currentDate := time.Now().Format(df.DateFormat)
-		url := strings.Replace(df.URLTemplate, "{{date}}", currentDate, -1)
-
-		if feed, err := r.FetchDynamicPage(url); err == nil {
+		if feed, err := config.Fetcher.Fetch(url); err == nil {
 			results[name] = feed
-
-			// 保存到JSON文件
-			outputFile := filepath.Join(r.outputDir, name+".json")
-			data, err := json.MarshalIndent(feed, "", "  ")
-			if err == nil {
+			// 保存到JSON
+			if data, err := json.MarshalIndent(feed, "", "  "); err == nil {
+				outputFile := filepath.Join(r.outputDir, name+".json")
 				os.WriteFile(outputFile, data, 0644)
 			}
 		} else {
-			fmt.Printf("抓取动态源 %s 失败: %v\n", name, err)
+			fmt.Printf("抓取源 %s 失败: %v\n", name, err)
 		}
 	}
 
@@ -265,11 +294,11 @@ func main() {
 	// helper.AddFeed("decohack", "https://decohack.com/feed")
 
 	// 添加动态RSS源
-	helper.AddDynamicFeed(
-		"producthunt-daily",
-		"https://decohack.com/producthunt-daily-{{date}}/",
-		"2006-01-02",
-	)
+	helper.AddFeed("producthunt-daily", FeedConfig{
+		URL:     "https://decohack.com/producthunt-daily-{{date}}/",
+		Format:  "2006-01-02",
+		Dynamic: true,
+	})
 
 	// 首次抓取
 	fmt.Println("开始首次抓取...")
