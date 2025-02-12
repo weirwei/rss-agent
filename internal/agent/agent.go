@@ -1,9 +1,9 @@
 package agent
 
 const (
-	AgentPHFeishu = "feishu_ph"
+	AgentPHFeishu = "product_hunt"
 )
 
 type Agent interface {
-	Send(title string, data []byte) error
+	Send(data []byte) error
 }

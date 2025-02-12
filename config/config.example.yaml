@@ -11,4 +11,3 @@ feishu:
 fetcher:
   product_hunt:
     enabled: true
-    length: 5

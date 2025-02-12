@@ -6,6 +6,7 @@ import (
 
 	"github.com/robfig/cron/v3"
 	"github.com/weirwei/rss-agent/internal/agent"
+	"github.com/weirwei/rss-agent/internal/log"
 )
 
 // AgentHelper 消息发送助手服务
@@ -30,7 +31,7 @@ func NewAgentHelper(inputDir string) *AgentHelper {
 	return &AgentHelper{
 		agents:   make(map[string]AgentConfig),
 		inputDir: inputDir,
-		cron:     cron.New(cron.WithSeconds()),
+		cron:     cron.New(),
 	}
 }
 
@@ -48,14 +49,14 @@ func (a *AgentHelper) SendAll() {
 		// 读取对应的数据文件
 		file, err := os.ReadFile(fmt.Sprintf("%s/%s.json", a.inputDir, name))
 		if err != nil {
-			fmt.Printf("读取文件失败 %s: %v\n", name, err)
+			log.Error("读取文件失败 %s: %v", name, err)
 			continue
 		}
 
 		// 发送消息
-		err = agentConfig.Agent.Send(fmt.Sprintf("%s Daily", name), file)
+		err = agentConfig.Agent.Send(file)
 		if err != nil {
-			fmt.Printf("发送消息失败 %s: %v\n", name, err)
+			log.Error("发送消息失败 %s: %v", name, err)
 		}
 	}
 }
@@ -67,16 +68,16 @@ func (a *AgentHelper) StartSchedule() error {
 		agent := agentConfig.Agent
 
 		_, err := a.cron.AddFunc(agentConfig.Cron, func() {
-			fmt.Printf("执行定时发送任务: %s\n", agentName)
+			log.Info("执行定时发送任务: %s", agentName)
 			file, err := os.ReadFile(fmt.Sprintf("%s/%s.json", a.inputDir, agentName))
 			if err != nil {
-				fmt.Printf("读取文件失败 %s: %v\n", agentName, err)
+				log.Error("读取文件失败 %s: %v", agentName, err)
 				return
 			}
 
-			err = agent.Send(fmt.Sprintf("%s Daily", agentName), file)
+			err = agent.Send(file)
 			if err != nil {
-				fmt.Printf("发送消息失败 %s: %v\n", agentName, err)
+				log.Error("发送消息失败 %s: %v", agentName, err)
 			}
 		})
 
@@ -86,6 +87,7 @@ func (a *AgentHelper) StartSchedule() error {
 	}
 
 	a.cron.Start()
+	log.Info("定时任务已启动")
 	return nil
 }
 

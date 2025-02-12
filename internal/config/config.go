@@ -31,7 +31,7 @@ type AgentConfig struct {
 }
 
 type FetcherConfig struct {
-	Schedule    int               `mapstructure:"schedule"`
+	Interval    int               `mapstructure:"interval"`
 	ProductHunt ProductHuntConfig `mapstructure:"product_hunt"`
 	RSS         RSSConfig         `mapstructure:"rss"`
 }

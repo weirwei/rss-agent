@@ -4,6 +4,9 @@ rss_output/
 # 配置文件
 config/config.yaml
 
+# 日志文件
+logs/
+
 # Go 相关
 *.exe
 *.exe~

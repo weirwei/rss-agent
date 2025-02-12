@@ -2,13 +2,13 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/weirwei/rss-agent/internal/config"
+	"github.com/weirwei/rss-agent/internal/log"
 	"github.com/weirwei/rss-agent/internal/model"
 )
 
@@ -27,7 +27,7 @@ func NewRSSHelper(outputDir string) *RSSHelper {
 
 	// 创建输出目录
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		fmt.Printf("创建输出目录失败: %v\n", err)
+		log.Error("创建输出目录失败: %v", err)
 	}
 
 	return &RSSHelper{
@@ -61,7 +61,7 @@ func (r *RSSHelper) FetchAllFeeds() map[string]*model.FeedData {
 				os.WriteFile(outputFile, data, 0644)
 			}
 		} else {
-			fmt.Printf("抓取源 %s 失败: %v\n", name, err)
+			log.Error("抓取源 %s 失败: %v", name, err)
 		}
 	}
 
@@ -70,18 +70,23 @@ func (r *RSSHelper) FetchAllFeeds() map[string]*model.FeedData {
 
 // StartSchedule 启动定时任务
 func (r *RSSHelper) StartSchedule(intervalMinutes int) {
+	if intervalMinutes <= 0 {
+		log.Error("定时任务间隔必须大于0分钟")
+		return
+	}
+
 	ticker := time.NewTicker(time.Duration(intervalMinutes) * time.Minute)
 	defer ticker.Stop()
 
-	fmt.Printf("开始定时任务，间隔时间：%d分钟\n", intervalMinutes)
+	log.Info("开始定时任务，间隔时间：%d分钟", intervalMinutes)
 
 	for {
 		select {
 		case <-ticker.C:
-			fmt.Println("执行定时抓取任务...")
+			log.Info("执行定时抓取任务...")
 			r.FetchAllFeeds()
 		case <-r.stopChan:
-			fmt.Println("停止定时任务")
+			log.Info("停止定时任务")
 			return
 		}
 	}

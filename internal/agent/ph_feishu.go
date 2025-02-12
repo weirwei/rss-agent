@@ -19,15 +19,15 @@ func NewPHFeishu(config config.AgentConfig) *phFeishu {
 	}
 }
 
-func (p *phFeishu) Send(title string, data []byte) error {
-	content, err := p.formatToMarkdown(data)
+func (p *phFeishu) Send(data []byte) error {
+	title, content, err := p.formatToMarkdown(data)
 	if err != nil {
 		return err
 	}
 	return SendToFeishu(p.webhookURL, title, content)
 }
 
-func (p *phFeishu) formatToMarkdown(data []byte) ([][]interface{}, error) {
+func (p *phFeishu) formatToMarkdown(data []byte) (string, [][]interface{}, error) {
 	var feed struct {
 		Title       string `json:"title"`
 		Description string `json:"description"`
@@ -43,13 +43,13 @@ func (p *phFeishu) formatToMarkdown(data []byte) ([][]interface{}, error) {
 
 	err := json.Unmarshal(data, &feed)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
+		return "", nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
 	}
 
 	var content [][]interface{}
 
 	for i, item := range feed.Items {
-		if i > p.length {
+		if i >= p.length {
 			break
 		}
 		var row []interface{}
@@ -79,5 +79,5 @@ func (p *phFeishu) formatToMarkdown(data []byte) ([][]interface{}, error) {
 		content = append(content, row)
 	}
 
-	return content, nil
+	return feed.Title, content, nil
 }
