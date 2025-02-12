@@ -15,10 +15,9 @@ type FeedConfig struct {
 }
 
 type Config struct {
-	App      AppConfig              `mapstructure:"app"`
-	Schedule int                    `mapstructure:"schedule"`
-	Feishu   map[string]AgentConfig `mapstructure:"feishu"`
-	Fetcher  FetcherConfig          `mapstructure:"fetcher"`
+	App     AppConfig              `mapstructure:"app"`
+	Feishu  map[string]AgentConfig `mapstructure:"feishu"`
+	Fetcher FetcherConfig          `mapstructure:"fetcher"`
 }
 
 type AppConfig struct {
@@ -27,10 +26,12 @@ type AppConfig struct {
 
 type AgentConfig struct {
 	WebhookURL string `mapstructure:"webhook_url"`
+	Cron       string `mapstructure:"cron"`
 	Length     int    `mapstructure:"length"`
 }
 
 type FetcherConfig struct {
+	Schedule    int               `mapstructure:"schedule"`
 	ProductHunt ProductHuntConfig `mapstructure:"product_hunt"`
 	RSS         RSSConfig         `mapstructure:"rss"`
 }

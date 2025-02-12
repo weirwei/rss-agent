@@ -4,6 +4,7 @@ go 1.23
 
 require (
 	github.com/mmcdole/gofeed v1.3.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/viper v1.19.0
 	github.com/weirwei/ikit v0.1.9
 )
