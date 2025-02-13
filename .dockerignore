@@ -1,0 +1,14 @@
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
+.git
+*.md
+*/*/.git
+*.sh
+Dockerfile
+.gitlab-ci.yml
+
+# Mac DS_Store Files
+.DS_Store
