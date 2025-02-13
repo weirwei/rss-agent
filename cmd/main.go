@@ -34,7 +34,7 @@ func main() {
 
 	// 添加动态源
 	if cfg.Fetcher.ProductHunt.Enabled {
-		rssHelper.AddFeed(agent.AgentPHFeishu, phFetcher, config.FeedConfig{
+		rssHelper.AddFeed(constants.AgentPH, phFetcher, config.FeedConfig{
 			Dynamic:  true,
 			Template: "https://decohack.com/producthunt-daily-{{date}}/",
 			Format:   "2006-01-02",
@@ -61,7 +61,7 @@ func main() {
 	}
 
 	// 添加飞书代理
-	agentHelper.AddAgent(agent.AgentPHFeishu, phFeishu, cfg.Feishu[agent.AgentPHFeishu].Cron)
+	agentHelper.AddAgent(constants.AgentTypePH, phFeishu, cfg.Feishu[constants.AgentTypePH].Cron)
 
 	// 首次抓取和发送
 	log.Info("开始首次抓取...")

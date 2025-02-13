@@ -7,13 +7,14 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/robfig/cron/v3"
 	"github.com/weirwei/rss-agent/internal/agent"
+	"github.com/weirwei/rss-agent/internal/constants"
 	"github.com/weirwei/rss-agent/internal/log"
 	"github.com/weirwei/rss-agent/internal/model"
 )
 
 // AgentHelper 消息发送助手服务
 type AgentHelper struct {
-	agents   map[string]AgentConfig
+	agents   map[constants.AgentType]AgentConfig
 	inputDir string
 	cron     *cron.Cron
 }
@@ -31,14 +32,14 @@ func NewAgentHelper(inputDir string) *AgentHelper {
 	}
 
 	return &AgentHelper{
-		agents:   make(map[string]AgentConfig),
+		agents:   make(map[constants.AgentType]AgentConfig),
 		inputDir: inputDir,
 		cron:     cron.New(),
 	}
 }
 
 // AddAgent 添加发送代理
-func (a *AgentHelper) AddAgent(name string, agent agent.Agent, cronExpr string) {
+func (a *AgentHelper) AddAgent(name constants.AgentType, agent agent.Agent, cronExpr string) {
 	a.agents[name] = AgentConfig{
 		Agent: agent,
 		Cron:  cronExpr,

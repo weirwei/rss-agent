@@ -1,5 +1,5 @@
 # 使用官方的 Golang 镜像作为基础镜像
-FROM golang:1.22-alpine as builder
+FROM golang:1.23-alpine as builder
 
 ARG APP_NAME
 ENV APP_NAME=$APP_NAME
@@ -16,7 +16,7 @@ RUN go mod download
 
 # 编译
 COPY . $GOPATH/${APP_NAME}/
-RUN go build -o /usr/local/bin/${APP_NAME} main.go
+RUN go build -o /usr/local/bin/${APP_NAME} cmd/main.go
 
 FROM alpine:3.20
 
