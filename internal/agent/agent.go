@@ -4,6 +4,7 @@ import "github.com/weirwei/rss-agent/internal/model"
 
 const (
 	AgentPHFeishu = "producthunt-daily"
+	AgentRSS      = "RSS"
 )
 
 type Agent interface {

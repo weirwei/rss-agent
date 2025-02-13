@@ -27,6 +27,7 @@ func main() {
 
 	// 初始化飞书代理
 	phFeishu := agent.NewPHFeishu(cfg.Feishu[agent.AgentPHFeishu])
+	rssFeishu := agent.NewRSSFeishu(cfg.Feishu[agent.AgentRSS])
 
 	// 创建 ProductHunt 抓取器
 	phFetcher := fetcher.NewPHFetcher()
@@ -34,7 +35,7 @@ func main() {
 
 	// 添加动态源
 	if cfg.Fetcher.ProductHunt.Enabled {
-		rssHelper.AddFeed("producthunt-daily", config.FeedConfig{
+		rssHelper.AddFeed(agent.AgentPHFeishu, config.FeedConfig{
 			Fetcher:  phFetcher,
 			Dynamic:  true,
 			Template: "https://decohack.com/producthunt-daily-{{date}}/",
@@ -53,8 +54,8 @@ func main() {
 	}
 
 	// 添加飞书代理
-	agentHelper.AddAgent("producthunt-daily", phFeishu, cfg.Feishu[agent.AgentPHFeishu].Cron)
-
+	agentHelper.AddAgent(agent.AgentPHFeishu, phFeishu, cfg.Feishu[agent.AgentPHFeishu].Cron)
+	agentHelper.AddAgent(agent.AgentRSS, rssFeishu, cfg.Feishu[agent.AgentRSS].Cron)
 	// 首次抓取和发送
 	log.Info("开始首次抓取...")
 	rssHelper.FetchAllFeeds()

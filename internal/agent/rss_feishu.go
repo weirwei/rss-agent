@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"regexp"
 	"time"
 
 	"github.com/weirwei/rss-agent/internal/config"
@@ -10,16 +11,27 @@ import (
 type rssFeishu struct {
 	webhookURL string
 	length     int
+	formatter  DataFormatter
 }
 
-func NewRSSFeishu(config config.AgentConfig) *rssFeishu {
-	return &rssFeishu{
+type DataFormatter func(*model.FeedData)
+
+func NewRSSFeishu(config config.AgentConfig, dateFormatter ...DataFormatter) *rssFeishu {
+	feishu := &rssFeishu{
 		webhookURL: config.WebhookURL,
 		length:     config.Length,
 	}
+	if len(dateFormatter) > 0 {
+		feishu.formatter = dateFormatter[0]
+	}
+
+	return feishu
 }
 
 func (r *rssFeishu) Send(data model.FeedData) error {
+	if r.formatter != nil {
+		r.formatter(&data)
+	}
 	title, content, err := r.formatToMarkdown(data)
 	if err != nil {
 		return err
@@ -65,4 +77,18 @@ func (r *rssFeishu) formatToMarkdown(data model.FeedData) (string, [][]interface
 	}
 
 	return data.Title, content, nil
+}
+
+var bestBlogsFormatterRe = regexp.MustCompile(`</h3>\s*<p[^>]*>([^<]*?)</p>`)
+
+func BestBlogsFormatter(data *model.FeedData) {
+	for i, v := range data.Items {
+		matches := bestBlogsFormatterRe.FindAllStringSubmatch(v.Summary, -1)
+		if len(matches) > 0 {
+			data.Items[i].Summary = matches[0][1]
+		}
+		if len(matches) > 1 {
+			data.Items[i].Description = matches[1][1]
+		}
+	}
 }
