@@ -9,4 +9,5 @@ const (
 
 type Agent interface {
 	Send(data model.FeedData) error
+	SetFormatter(formatter DataFormatter)
 }

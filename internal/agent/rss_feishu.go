@@ -16,7 +16,7 @@ type rssFeishu struct {
 
 type DataFormatter func(*model.FeedData)
 
-func NewRSSFeishu(config config.AgentConfig, dateFormatter ...DataFormatter) *rssFeishu {
+func NewRSSFeishu(config config.AgentConfig, dateFormatter ...DataFormatter) Agent {
 	feishu := &rssFeishu{
 		webhookURL: config.WebhookURL,
 		length:     config.Length,
@@ -37,6 +37,10 @@ func (r *rssFeishu) Send(data model.FeedData) error {
 		return err
 	}
 	return SendToFeishu(r.webhookURL, title, content)
+}
+
+func (r *rssFeishu) SetFormatter(formatter DataFormatter) {
+	r.formatter = formatter
 }
 
 func (r *rssFeishu) formatToMarkdown(data model.FeedData) (string, [][]interface{}, error) {
@@ -62,7 +66,7 @@ func (r *rssFeishu) formatToMarkdown(data model.FeedData) (string, [][]interface
 		})
 		row = append(row, TextElement{
 			Tag:  "text",
-			Text: item.Summary + "\n\n",
+			Text: item.Description + "\n\n",
 		})
 		row = append(row, TextElement{
 			Tag:  "text",

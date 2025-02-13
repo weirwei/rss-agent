@@ -7,6 +7,7 @@ import (
 
 	"github.com/weirwei/rss-agent/internal/agent"
 	"github.com/weirwei/rss-agent/internal/config"
+	"github.com/weirwei/rss-agent/internal/constants"
 	"github.com/weirwei/rss-agent/internal/fetcher"
 	"github.com/weirwei/rss-agent/internal/log"
 	"github.com/weirwei/rss-agent/internal/service"
@@ -26,17 +27,14 @@ func main() {
 	agentHelper := service.NewAgentHelper("")
 
 	// 初始化飞书代理
-	phFeishu := agent.NewPHFeishu(cfg.Feishu[agent.AgentPHFeishu])
-	rssFeishu := agent.NewRSSFeishu(cfg.Feishu[agent.AgentRSS])
+	phFeishu := agent.NewPHFeishu(cfg.Feishu[constants.AgentTypePH])
 
 	// 创建 ProductHunt 抓取器
 	phFetcher := fetcher.NewPHFetcher()
-	rssFetcher := fetcher.NewRSSFetcher()
 
 	// 添加动态源
 	if cfg.Fetcher.ProductHunt.Enabled {
-		rssHelper.AddFeed(agent.AgentPHFeishu, config.FeedConfig{
-			Fetcher:  phFetcher,
+		rssHelper.AddFeed(agent.AgentPHFeishu, phFetcher, config.FeedConfig{
 			Dynamic:  true,
 			Template: "https://decohack.com/producthunt-daily-{{date}}/",
 			Format:   "2006-01-02",
@@ -46,16 +44,25 @@ func main() {
 	// 添加 RSS 源
 	for _, rssCfg := range cfg.Fetcher.RSS {
 		if rssCfg.Enabled {
-			rssHelper.AddFeed(rssCfg.Name, config.FeedConfig{
-				Fetcher: rssFetcher,
-				URL:     rssCfg.URL,
+			f := fetcher.NewRSSFetcher(nil)
+			if rssCfg.Send {
+				ag := agent.NewRSSFeishu(cfg.Feishu[constants.AgentTypeRSS])
+				switch rssCfg.Name {
+				case constants.AgentBestBlogs:
+					ag.SetFormatter(agent.BestBlogsFormatter)
+				}
+				f = fetcher.NewRSSFetcher(ag)
+			}
+
+			rssHelper.AddFeed(rssCfg.Name, f, config.FeedConfig{
+				URL: rssCfg.URL,
 			})
 		}
 	}
 
 	// 添加飞书代理
 	agentHelper.AddAgent(agent.AgentPHFeishu, phFeishu, cfg.Feishu[agent.AgentPHFeishu].Cron)
-	agentHelper.AddAgent(agent.AgentRSS, rssFeishu, cfg.Feishu[agent.AgentRSS].Cron)
+
 	// 首次抓取和发送
 	log.Info("开始首次抓取...")
 	rssHelper.FetchAllFeeds()

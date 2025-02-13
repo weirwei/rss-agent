@@ -2,22 +2,22 @@ package config
 
 import (
 	"github.com/spf13/viper"
-	"github.com/weirwei/rss-agent/internal/fetcher"
+	"github.com/weirwei/rss-agent/internal/constants"
 )
 
 // FeedConfig 表示一个源的配置
 type FeedConfig struct {
 	URL      string
-	Fetcher  fetcher.FeedFetcher
 	Dynamic  bool
 	Template string
 	Format   string
 }
 
 type Config struct {
-	App     AppConfig              `mapstructure:"app"`
-	Feishu  map[string]AgentConfig `mapstructure:"feishu"`
-	Fetcher FetcherConfig          `mapstructure:"fetcher"`
+	App       AppConfig                           `mapstructure:"app"`
+	Feishu    map[constants.AgentType]AgentConfig `mapstructure:"feishu"`
+	Fetcher   FetcherConfig                       `mapstructure:"fetcher"`
+	OutputDir string                              `mapstructure:"output_dir"`
 }
 
 type AppConfig struct {
@@ -42,9 +42,10 @@ type ProductHuntConfig struct {
 }
 
 type RSSConfig struct {
-	Name    string `mapstructure:"name"`
-	URL     string `mapstructure:"url"`
-	Enabled bool   `mapstructure:"enabled"`
+	Name    constants.AgentName `mapstructure:"name"`
+	URL     string              `mapstructure:"url"`
+	Send    bool                `mapstructure:"send"`
+	Enabled bool                `mapstructure:"enabled"`
 }
 
 func Load() (*Config, error) {

@@ -5,18 +5,21 @@ import (
 	"time"
 
 	"github.com/mmcdole/gofeed"
+	"github.com/weirwei/rss-agent/internal/agent"
 	"github.com/weirwei/rss-agent/internal/model"
 )
 
 // RSSFetcher RSS源获取器
 type RSSFetcher struct {
+	agent  agent.Agent
 	parser *gofeed.Parser
 }
 
 // NewRSSFetcher 创建RSS获取器
-func NewRSSFetcher() *RSSFetcher {
+func NewRSSFetcher(agent agent.Agent) *RSSFetcher {
 	return &RSSFetcher{
 		parser: gofeed.NewParser(),
+		agent:  agent,
 	}
 }
 
@@ -26,11 +29,14 @@ func (r *RSSFetcher) Fetch(url string) (*model.FeedData, error) {
 	if err != nil {
 		return nil, fmt.Errorf("解析RSS源失败: %v", err)
 	}
-
+	lastUpdated := time.Now()
+	if feed.UpdatedParsed != nil {
+		lastUpdated = *feed.UpdatedParsed
+	}
 	result := &model.FeedData{
 		Title:       feed.Title,
 		Description: feed.Description,
-		LastUpdated: time.Now(),
+		LastUpdated: lastUpdated,
 		Items:       make([]model.FeedItem, 0),
 	}
 
@@ -54,4 +60,11 @@ func (r *RSSFetcher) Fetch(url string) (*model.FeedData, error) {
 	}
 
 	return result, nil
+}
+
+func (r *RSSFetcher) Complete(data *model.FeedData) error {
+	if data == nil || r.agent == nil {
+		return nil
+	}
+	return r.agent.Send(*data)
 }

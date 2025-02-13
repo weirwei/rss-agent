@@ -4,14 +4,19 @@ app:
 feishu:
   producthunt-daily:
     webhook_url: https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-url
-    cron: "0 16 * * *" # 每天16点0分0秒执行
+    cron: "0 16 * * *" # 每天16点0分0秒执行 # todo 换个新的配置维护
     length: 6
+  rss:
+    webhook_url: https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-url
+    length: 6 # 最多6条
 
 fetcher:
-  interval: 30
-  product_hunt:
+  interval: 30 # 每隔30分钟执行一次
+  producthunt-daily:
     enabled: true
   rss:
-    - name: best blogs
-      url: https://www.bestblogs.dev/en/feeds/rss?category=ai&minScore=90
+    - name: best-blogs
+      url: https://www.bestblogs.dev/feeds/rss?category=ai&minScore=90
+      send: true # 是否立刻发送
       enabled: true
+

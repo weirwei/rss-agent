@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/weirwei/rss-agent/internal/log"
 	"github.com/weirwei/rss-agent/internal/model"
 )
 
@@ -21,6 +22,7 @@ func NewPHFetcher() *PHFetcher {
 
 // Fetch 实现 FeedFetcher 接口 - ProductHunt方式
 func (h *PHFetcher) Fetch(url string) (*model.FeedData, error) {
+	log.Info("开始获取ProductHunt页面...")
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("获取页面失败: %v", err)
@@ -84,6 +86,10 @@ func (h *PHFetcher) Fetch(url string) (*model.FeedData, error) {
 		}
 		result.Items = append(result.Items, item)
 	}
-
+	log.Info("获取ProductHunt页面成功。标题：%s", result.Title)
 	return result, nil
+}
+
+func (h *PHFetcher) Complete(data *model.FeedData) error {
+	return nil
 }

@@ -10,7 +10,7 @@ type phFeishu struct {
 	length     int
 }
 
-func NewPHFeishu(config config.AgentConfig) *phFeishu {
+func NewPHFeishu(config config.AgentConfig) Agent {
 	return &phFeishu{
 		webhookURL: config.WebhookURL,
 		length:     config.Length,
@@ -23,6 +23,9 @@ func (p *phFeishu) Send(data model.FeedData) error {
 		return err
 	}
 	return SendToFeishu(p.webhookURL, data.Title, content)
+}
+
+func (p *phFeishu) SetFormatter(formatter DataFormatter) {
 }
 
 func (p *phFeishu) formatToMarkdown(data model.FeedData) ([][]interface{}, error) {

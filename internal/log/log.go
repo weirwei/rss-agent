@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 var (
@@ -21,7 +22,7 @@ func init() {
 
 	// 打开日志文件
 	logFile, err := os.OpenFile(
-		filepath.Join("logs", "app.log"),
+		filepath.Join("logs", fmt.Sprintf("%s.log", time.Now().Format(time.DateOnly))),
 		os.O_CREATE|os.O_WRONLY|os.O_APPEND,
 		0644,
 	)

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/weirwei/rss-agent/internal/log"
 )
 
 type TextElement struct {
@@ -71,6 +73,6 @@ func SendToFeishu(feishuWebhookURL string, title string, content [][]interface{}
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("feishu API error: %s", string(body))
 	}
-
+	log.Info("Message sent to Feishu successfully. Title:%s", title)
 	return nil
 }
