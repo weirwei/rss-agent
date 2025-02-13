@@ -33,7 +33,7 @@ type AgentConfig struct {
 type FetcherConfig struct {
 	Interval    int               `mapstructure:"interval"`
 	ProductHunt ProductHuntConfig `mapstructure:"product_hunt"`
-	RSS         RSSConfig         `mapstructure:"rss"`
+	RSS         []RSSConfig       `mapstructure:"rss"`
 }
 
 type ProductHuntConfig struct {
@@ -42,7 +42,9 @@ type ProductHuntConfig struct {
 }
 
 type RSSConfig struct {
-	Enabled bool `mapstructure:"enabled"`
+	Name    string `mapstructure:"name"`
+	URL     string `mapstructure:"url"`
+	Enabled bool   `mapstructure:"enabled"`
 }
 
 func Load() (*Config, error) {

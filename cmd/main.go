@@ -30,14 +30,27 @@ func main() {
 
 	// 创建 ProductHunt 抓取器
 	phFetcher := fetcher.NewPHFetcher()
+	rssFetcher := fetcher.NewRSSFetcher()
 
 	// 添加动态源
-	rssHelper.AddFeed("producthunt-daily", config.FeedConfig{
-		Fetcher:  phFetcher,
-		Dynamic:  true,
-		Template: "https://decohack.com/producthunt-daily-{{date}}/",
-		Format:   "2006-01-02",
-	})
+	if cfg.Fetcher.ProductHunt.Enabled {
+		rssHelper.AddFeed("producthunt-daily", config.FeedConfig{
+			Fetcher:  phFetcher,
+			Dynamic:  true,
+			Template: "https://decohack.com/producthunt-daily-{{date}}/",
+			Format:   "2006-01-02",
+		})
+	}
+
+	// 添加 RSS 源
+	for _, rssCfg := range cfg.Fetcher.RSS {
+		if rssCfg.Enabled {
+			rssHelper.AddFeed(rssCfg.Name, config.FeedConfig{
+				Fetcher: rssFetcher,
+				URL:     rssCfg.URL,
+			})
+		}
+	}
 
 	// 添加飞书代理
 	agentHelper.AddAgent("producthunt-daily", phFeishu, cfg.Feishu[agent.AgentPHFeishu].Cron)

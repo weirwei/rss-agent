@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/robfig/cron/v3"
 	"github.com/weirwei/rss-agent/internal/agent"
 	"github.com/weirwei/rss-agent/internal/log"
+	"github.com/weirwei/rss-agent/internal/model"
 )
 
 // AgentHelper 消息发送助手服务
@@ -52,9 +54,14 @@ func (a *AgentHelper) SendAll() {
 			log.Error("读取文件失败 %s: %v", name, err)
 			continue
 		}
-
+		var feedData model.FeedData
+		err = jsoniter.Unmarshal(file, &feedData)
+		if err != nil {
+			log.Error("解析 JSON 数据失败 %s: %v", name, err)
+			continue
+		}
 		// 发送消息
-		err = agentConfig.Agent.Send(file)
+		err = agentConfig.Agent.Send(feedData)
 		if err != nil {
 			log.Error("发送消息失败 %s: %v", name, err)
 		}
@@ -66,7 +73,7 @@ func (a *AgentHelper) StartSchedule() error {
 	for name, agentConfig := range a.agents {
 		agentName := name // 创建副本用于闭包
 		agent := agentConfig.Agent
-
+		log.Info("启动定时发送任务: %s", agentName)
 		_, err := a.cron.AddFunc(agentConfig.Cron, func() {
 			log.Info("执行定时发送任务: %s", agentName)
 			file, err := os.ReadFile(fmt.Sprintf("%s/%s.json", a.inputDir, agentName))
@@ -75,7 +82,13 @@ func (a *AgentHelper) StartSchedule() error {
 				return
 			}
 
-			err = agent.Send(file)
+			var feedData model.FeedData
+			err = jsoniter.Unmarshal(file, &feedData)
+			if err != nil {
+				log.Error("解析 JSON 数据失败 %s: %v", agentName, err)
+				return
+			}
+			err = agent.Send(feedData)
 			if err != nil {
 				log.Error("发送消息失败 %s: %v", agentName, err)
 			}

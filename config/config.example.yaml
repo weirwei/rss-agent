@@ -1,13 +1,17 @@
 app:
   name: rss-agent
 
-schedule: 180
-
 feishu:
-  product_hunt:
+  producthunt-daily:
     webhook_url: https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-url
-    length: 5
+    cron: "0 16 * * *" # 每天16点0分0秒执行
+    length: 6
 
 fetcher:
+  interval: 30
   product_hunt:
     enabled: true
+  rss:
+    - name: best blogs
+      url: https://www.bestblogs.dev/en/feeds/rss?category=ai&minScore=90
+      enabled: true

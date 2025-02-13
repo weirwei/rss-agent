@@ -1,34 +1,36 @@
 package agent
 
 import (
+	"time"
+
 	"github.com/weirwei/rss-agent/internal/config"
 	"github.com/weirwei/rss-agent/internal/model"
 )
 
-type phFeishu struct {
+type rssFeishu struct {
 	webhookURL string
 	length     int
 }
 
-func NewPHFeishu(config config.AgentConfig) *phFeishu {
-	return &phFeishu{
+func NewRSSFeishu(config config.AgentConfig) *rssFeishu {
+	return &rssFeishu{
 		webhookURL: config.WebhookURL,
 		length:     config.Length,
 	}
 }
 
-func (p *phFeishu) Send(data model.FeedData) error {
-	content, err := p.formatToMarkdown(data)
+func (r *rssFeishu) Send(data model.FeedData) error {
+	title, content, err := r.formatToMarkdown(data)
 	if err != nil {
 		return err
 	}
-	return SendToFeishu(p.webhookURL, data.Title, content)
+	return SendToFeishu(r.webhookURL, title, content)
 }
 
-func (p *phFeishu) formatToMarkdown(data model.FeedData) ([][]interface{}, error) {
+func (r *rssFeishu) formatToMarkdown(data model.FeedData) (string, [][]interface{}, error) {
 	var content [][]interface{}
 	for i, item := range data.Items {
-		if i >= p.length {
+		if i >= r.length {
 			break
 		}
 		var row []interface{}
@@ -39,7 +41,7 @@ func (p *phFeishu) formatToMarkdown(data model.FeedData) ([][]interface{}, error
 		})
 		row = append(row, AElement{
 			Tag:  "a",
-			Text: item.Title + ": " + item.Summary,
+			Text: item.Title,
 			Href: item.Link,
 		})
 		row = append(row, TextElement{
@@ -48,7 +50,11 @@ func (p *phFeishu) formatToMarkdown(data model.FeedData) ([][]interface{}, error
 		})
 		row = append(row, TextElement{
 			Tag:  "text",
-			Text: item.Description + "\n\n",
+			Text: item.Summary + "\n\n",
+		})
+		row = append(row, TextElement{
+			Tag:  "text",
+			Text: "发布时间：" + item.Published.Format(time.DateTime) + "\n\n",
 		})
 		row = append(row, TextElement{
 			Tag:  "text",
@@ -58,5 +64,5 @@ func (p *phFeishu) formatToMarkdown(data model.FeedData) ([][]interface{}, error
 		content = append(content, row)
 	}
 
-	return content, nil
+	return data.Title, content, nil
 }

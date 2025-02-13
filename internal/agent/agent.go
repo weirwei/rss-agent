@@ -1,9 +1,11 @@
 package agent
 
+import "github.com/weirwei/rss-agent/internal/model"
+
 const (
-	AgentPHFeishu = "product_hunt"
+	AgentPHFeishu = "producthunt-daily"
 )
 
 type Agent interface {
-	Send(data []byte) error
+	Send(data model.FeedData) error
 }
