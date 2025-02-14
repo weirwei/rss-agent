@@ -29,7 +29,7 @@ WORKDIR /usr/local/bin/
 # 拷贝编译好的程序
 COPY --from=builder /usr/local/bin/${APP_NAME} /usr/local/bin/
 # 拷贝配置文件
-COPY ./conf /usr/local/bin/conf
+COPY ./config /usr/local/bin/config
 
 # 运行程序
 CMD ["sh", "-c", "/usr/local/bin/$APP_NAME"]

@@ -12,7 +12,7 @@ feishu:
 
 fetcher:
   interval: 30 # 每隔30分钟执行一次
-  producthunt-daily:
+  product_hunt:
     enabled: true
   rss:
     - name: best-blogs
